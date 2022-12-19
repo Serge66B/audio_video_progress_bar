@@ -25,6 +25,18 @@ enum TimeLabelLocation {
   ///  | 01:23 -------O---------------- 05:00 |
   sides,
 
+  ///  The time is displayed below the progress bar.
+  ///
+  ///  |            01:23 / 05:00 |
+  ///  | -------O---------------- |
+  rightAbove,
+
+  ///  The time is displayed below the progress bar.
+  ///
+  ///  | -------O---------------- |
+  ///  |            01:23 / 05:00 |
+  rightBelow,
+
   ///  The time is not displayed.
   ///
   ///  | -------O---------------- |
@@ -94,6 +106,7 @@ class ProgressBar extends LeafRenderObjectWidget {
     this.thumbCanPaintOutsideBar = true,
     this.timeLabelLocation,
     this.timeLabelType,
+    this.timeLabelSeparator,
     this.timeLabelTextStyle,
     this.timeLabelPadding = 0.0,
   }) : super(key: key);
@@ -241,6 +254,9 @@ class ProgressBar extends LeafRenderObjectWidget {
   /// negative number. The default is [TimeLabelType.totalTime].
   final TimeLabelType? timeLabelType;
 
+  /// Text separator of the tiem label parts if there positioned on one side
+  final String? timeLabelSeparator;
+
   /// The [TextStyle] used by the time labels.
   ///
   /// By default it is [TextTheme.bodyText1].
@@ -278,6 +294,7 @@ class ProgressBar extends LeafRenderObjectWidget {
       thumbCanPaintOutsideBar: thumbCanPaintOutsideBar,
       timeLabelLocation: timeLabelLocation ?? TimeLabelLocation.below,
       timeLabelType: timeLabelType ?? TimeLabelType.totalTime,
+      timeLabelSeparator: timeLabelSeparator,
       timeLabelTextStyle: textStyle,
       timeLabelPadding: timeLabelPadding,
     );
@@ -309,6 +326,7 @@ class ProgressBar extends LeafRenderObjectWidget {
       ..thumbCanPaintOutsideBar = thumbCanPaintOutsideBar
       ..timeLabelLocation = timeLabelLocation ?? TimeLabelLocation.below
       ..timeLabelType = timeLabelType ?? TimeLabelType.totalTime
+      ..timeLabelSeparator = timeLabelSeparator
       ..timeLabelTextStyle = textStyle
       ..timeLabelPadding = timeLabelPadding;
   }
@@ -350,6 +368,7 @@ class ProgressBar extends LeafRenderObjectWidget {
     properties
         .add(StringProperty('timeLabelLocation', timeLabelLocation.toString()));
     properties.add(StringProperty('timeLabelType', timeLabelType.toString()));
+    properties.add(StringProperty('timeLabelSeparator', timeLabelSeparator));
     properties
         .add(DiagnosticsProperty('timeLabelTextStyle', timeLabelTextStyle));
     properties.add(DoubleProperty('timeLabelPadding', timeLabelPadding));
@@ -422,6 +441,7 @@ class _RenderProgressBar extends RenderBox {
     double thumbGlowRadius = 30.0,
     bool thumbCanPaintOutsideBar = true,
     required TimeLabelLocation timeLabelLocation,
+    String? timeLabelSeparator = ' / ',
     required TimeLabelType timeLabelType,
     TextStyle? timeLabelTextStyle,
     double timeLabelPadding = 0.0,
@@ -444,6 +464,7 @@ class _RenderProgressBar extends RenderBox {
         _thumbCanPaintOutsideBar = thumbCanPaintOutsideBar,
         _timeLabelLocation = timeLabelLocation,
         _timeLabelType = timeLabelType,
+        _timeLabelSeparator = timeLabelSeparator,
         _timeLabelTextStyle = timeLabelTextStyle,
         _timeLabelPadding = timeLabelPadding {
     _drag = _EagerHorizontalDragGestureRecognizer()
@@ -561,6 +582,12 @@ class _RenderProgressBar extends RenderBox {
     return _cachedLeftLabel!.size;
   }
 
+  TextPainter? _cachedLabelSeparator;
+  Size get _timeLabelSeparatorSize {
+    _cachedLabelSeparator ??= _timeLabelSeparatorToken();
+    return _cachedLabelSeparator!.size;
+  }
+
   TextPainter? _cachedRightLabel;
   Size get _rightLabelSize {
     _cachedRightLabel ??= _rightTimeLabel();
@@ -570,11 +597,16 @@ class _RenderProgressBar extends RenderBox {
   void _clearLabelCache() {
     _cachedLeftLabel = null;
     _cachedRightLabel = null;
+    _cachedLabelSeparator = null;
   }
 
   TextPainter _leftTimeLabel() {
     final text = _getTimeString(progress);
     return _layoutText(text);
+  }
+
+  TextPainter _timeLabelSeparatorToken() {
+    return _layoutText(_timeLabelSeparator ?? '');
   }
 
   TextPainter _rightTimeLabel() {
@@ -777,6 +809,16 @@ class _RenderProgressBar extends RenderBox {
     markNeedsLayout();
   }
 
+
+  String? get timeLabelSeparator => _timeLabelSeparator;
+  String? _timeLabelSeparator;
+  set timeLabelSeparator(String? value) {
+    if (_timeLabelSeparator == value) return;
+    _timeLabelSeparator = value;
+    _clearLabelCache();
+    markNeedsLayout();
+  }
+
   /// The text style for the duration text labels. By default this style is
   /// taken from the theme's [textStyle.bodyText1].
   TextStyle? get timeLabelTextStyle => _timeLabelTextStyle;
@@ -842,6 +884,8 @@ class _RenderProgressBar extends RenderBox {
     switch (_timeLabelLocation) {
       case TimeLabelLocation.below:
       case TimeLabelLocation.above:
+      case TimeLabelLocation.rightAbove:
+      case TimeLabelLocation.rightBelow:
         return _heightWhenLabelsAboveOrBelow();
       case TimeLabelLocation.sides:
         return _heightWhenLabelsOnSides();
@@ -883,11 +927,54 @@ class _RenderProgressBar extends RenderBox {
       case TimeLabelLocation.sides:
         _drawProgressBarWithLabelsOnSides(canvas);
         break;
+      case TimeLabelLocation.rightAbove:
+      case TimeLabelLocation.rightBelow:
+        _drawProgressBarWithLabelsRightAboveOrBelow(canvas);
+        break;
       default:
         _drawProgressBarWithoutLabels(canvas);
     }
 
     canvas.restore();
+  }
+
+  ///  Draw the progress bar and labels vertically aligned:
+  ///
+  ///  | 01:23              05:00 |
+  ///  | -------O---------------- |
+  ///
+  /// Or like this:
+  ///
+  ///  | -------O---------------- |
+  ///  |            01:23 / 05:00 |
+  ///
+  void _drawProgressBarWithLabelsRightAboveOrBelow(Canvas canvas) {
+    // calculate sizes
+    final barWidth = size.width;
+    final barHeight = _heightWhenNoLabels();
+
+    // whether to paint the labels below the progress bar or above it
+    final isLabelBelow = _timeLabelLocation == TimeLabelLocation.rightBelow;
+
+    // current time label
+    final labelDy = (isLabelBelow) ? barHeight + _timeLabelPadding : 0.0;
+    final leftLabelDx = size.width - _leftLabelSize.width - _timeLabelSeparatorSize.width - _rightLabelSize.width;
+    final leftLabelOffset = Offset(leftLabelDx, labelDy);
+    _leftTimeLabel().paint(canvas, leftLabelOffset);
+
+    // time label separator
+    final separatorDx = size.width - _timeLabelSeparatorSize.width - _rightLabelSize.width;
+    final separatorLabelOffset = Offset(separatorDx, labelDy);
+    _timeLabelSeparatorToken().paint(canvas, separatorLabelOffset);
+
+    // total or remaining time label
+    final rightLabelDx = size.width - _rightLabelSize.width;
+    final rightLabelOffset = Offset(rightLabelDx, labelDy);
+    _rightTimeLabel().paint(canvas, rightLabelOffset);
+
+    // progress bar
+    final barDy = (isLabelBelow) ? 0.0 : _leftLabelSize.height + _timeLabelPadding;
+    _drawProgressBar(canvas, Offset(0, barDy), Size(barWidth, barHeight));
   }
 
   ///  Draw the progress bar and labels vertically aligned:
@@ -918,8 +1005,7 @@ class _RenderProgressBar extends RenderBox {
     _rightTimeLabel().paint(canvas, rightLabelOffset);
 
     // progress bar
-    final barDy =
-        (isLabelBelow) ? 0.0 : _leftLabelSize.height + _timeLabelPadding;
+    final barDy = (isLabelBelow) ? 0.0 : _leftLabelSize.height + _timeLabelPadding;
     _drawProgressBar(canvas, Offset(0, barDy), Size(barWidth, barHeight));
   }
 

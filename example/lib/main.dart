@@ -229,6 +229,18 @@ class _FullExampleState extends State<FullExample> {
         },
       ),
       OutlinedButton(
+        child: const Text('right above'),
+        onPressed: () {
+          setState(() => _labelLocation = TimeLabelLocation.rightAbove);
+        },
+      ),
+      OutlinedButton(
+        child: const Text('right below'),
+        onPressed: () {
+          setState(() => _labelLocation = TimeLabelLocation.rightBelow);
+        },
+      ),
+      OutlinedButton(
         child: const Text('none'),
         onPressed: () {
           setState(() => _labelLocation = TimeLabelLocation.none);
@@ -439,6 +451,7 @@ class _FullExampleState extends State<FullExample> {
           thumbCanPaintOutsideBar: _thumbCanPaintOutsideBar,
           timeLabelLocation: _labelLocation,
           timeLabelType: _labelType,
+          timeLabelSeparator: ' - ',
           timeLabelTextStyle: _labelStyle,
           timeLabelPadding: _labelPadding,
         );
