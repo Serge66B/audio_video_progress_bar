@@ -451,7 +451,7 @@ class _FullExampleState extends State<FullExample> {
           thumbCanPaintOutsideBar: _thumbCanPaintOutsideBar,
           timeLabelLocation: _labelLocation,
           timeLabelType: _labelType,
-          timeLabelSeparator: ' - ',
+          // timeLabelSeparator: ' - ',
           timeLabelTextStyle: _labelStyle,
           timeLabelPadding: _labelPadding,
         );

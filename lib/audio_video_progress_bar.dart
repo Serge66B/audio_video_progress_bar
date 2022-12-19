@@ -106,7 +106,7 @@ class ProgressBar extends LeafRenderObjectWidget {
     this.thumbCanPaintOutsideBar = true,
     this.timeLabelLocation,
     this.timeLabelType,
-    this.timeLabelSeparator,
+    this.timeLabelSeparator = ' / ',
     this.timeLabelTextStyle,
     this.timeLabelPadding = 0.0,
   }) : super(key: key);
