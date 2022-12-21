@@ -99,6 +99,11 @@ class ProgressBar extends LeafRenderObjectWidget {
     this.progressBarColor,
     this.bufferedBarColor,
     this.barCapShape = BarCapShape.round,
+
+    this.hasBarBackground = false,
+    this.barBackgroundColor,
+    this.barBackgroundHeight,
+
     this.thumbRadius = 10.0,
     this.thumbColor,
     this.thumbGlowColor,
@@ -106,7 +111,7 @@ class ProgressBar extends LeafRenderObjectWidget {
     this.thumbCanPaintOutsideBar = true,
     this.timeLabelLocation,
     this.timeLabelType,
-    this.timeLabelSeparator = ' / ',
+    this.timeLabelSeparator,
     this.timeLabelTextStyle,
     this.timeLabelPadding = 0.0,
   }) : super(key: key);
@@ -206,6 +211,12 @@ class ProgressBar extends LeafRenderObjectWidget {
   /// and the buffered progress bar. The default is [BarCapShape.round].
   final BarCapShape barCapShape;
 
+
+  /// Properties of optional progressbar background ribbon
+  final bool? hasBarBackground;
+  final Color? barBackgroundColor;
+  final double? barBackgroundHeight;
+
   /// The radius of the circle for the moveable progress bar thumb.
   final double thumbRadius;
 
@@ -273,6 +284,7 @@ class ProgressBar extends LeafRenderObjectWidget {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
     final textStyle = timeLabelTextStyle ?? theme.textTheme.bodyText1;
+    final backgrounColor = barBackgroundColor ?? (baseBarColor ?? primaryColor.withOpacity(0.24)).withOpacity(0.24);
     return _RenderProgressBar(
       progress: progress,
       total: total,
@@ -286,15 +298,17 @@ class ProgressBar extends LeafRenderObjectWidget {
       progressBarColor: progressBarColor ?? primaryColor,
       bufferedBarColor: bufferedBarColor ?? primaryColor.withOpacity(0.24),
       barCapShape: barCapShape,
+      hasBarBackground: hasBarBackground ?? false,
+      barBackgroundColor: backgrounColor,
+      barBackgroundHeight: barBackgroundHeight ?? 6 * barHeight,
       thumbRadius: thumbRadius,
       thumbColor: thumbColor ?? primaryColor,
-      thumbGlowColor:
-          thumbGlowColor ?? (thumbColor ?? primaryColor).withAlpha(80),
+      thumbGlowColor: thumbGlowColor ?? (thumbColor ?? primaryColor).withAlpha(80),
       thumbGlowRadius: thumbGlowRadius,
       thumbCanPaintOutsideBar: thumbCanPaintOutsideBar,
       timeLabelLocation: timeLabelLocation ?? TimeLabelLocation.below,
       timeLabelType: timeLabelType ?? TimeLabelType.totalTime,
-      timeLabelSeparator: timeLabelSeparator,
+      timeLabelSeparator: timeLabelSeparator ?? ' / ',
       timeLabelTextStyle: textStyle,
       timeLabelPadding: timeLabelPadding,
     );
@@ -305,6 +319,7 @@ class ProgressBar extends LeafRenderObjectWidget {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
     final textStyle = timeLabelTextStyle ?? theme.textTheme.bodyText1;
+    final backgrounColor = barBackgroundColor ?? (baseBarColor ?? primaryColor.withOpacity(0.24)).withOpacity(0.24);
     (renderObject as _RenderProgressBar)
       ..progress = progress
       ..total = total
@@ -318,6 +333,9 @@ class ProgressBar extends LeafRenderObjectWidget {
       ..progressBarColor = progressBarColor ?? primaryColor
       ..bufferedBarColor = bufferedBarColor ?? primaryColor.withOpacity(0.24)
       ..barCapShape = barCapShape
+      ..hasBarBackground = hasBarBackground ?? false
+      ..barBackgroundColor = backgrounColor
+      ..barBackgroundHeight = barBackgroundHeight ?? 6 * barHeight
       ..thumbRadius = thumbRadius
       ..thumbColor = thumbColor ?? primaryColor
       ..thumbGlowColor =
@@ -326,7 +344,7 @@ class ProgressBar extends LeafRenderObjectWidget {
       ..thumbCanPaintOutsideBar = thumbCanPaintOutsideBar
       ..timeLabelLocation = timeLabelLocation ?? TimeLabelLocation.below
       ..timeLabelType = timeLabelType ?? TimeLabelType.totalTime
-      ..timeLabelSeparator = timeLabelSeparator
+      ..timeLabelSeparator = timeLabelSeparator ?? ' / '
       ..timeLabelTextStyle = textStyle
       ..timeLabelPadding = timeLabelPadding;
   }
@@ -352,6 +370,9 @@ class ProgressBar extends LeafRenderObjectWidget {
     properties.add(ColorProperty('progressBarColor', progressBarColor));
     properties.add(ColorProperty('bufferedBarColor', bufferedBarColor));
     properties.add(StringProperty('barCapShape', barCapShape.toString()));
+    properties.add(StringProperty('hasBarBackground', hasBarBackground.toString()));
+    properties.add(StringProperty('barBackgroundColor', barBackgroundColor.toString()));
+    properties.add(StringProperty('barBackgroundHeight', barBackgroundHeight.toString()));
     properties.add(DoubleProperty('thumbRadius', thumbRadius));
     properties.add(ColorProperty('thumbColor', thumbColor));
     properties.add(ColorProperty('thumbGlowColor', thumbGlowColor));
@@ -435,13 +456,16 @@ class _RenderProgressBar extends RenderBox {
     required Color progressBarColor,
     required Color bufferedBarColor,
     required BarCapShape barCapShape,
+    required bool hasBarBackground,
+    required Color barBackgroundColor,
+    required double barBackgroundHeight,
     double thumbRadius = 20.0,
     required Color thumbColor,
     required Color thumbGlowColor,
     double thumbGlowRadius = 30.0,
     bool thumbCanPaintOutsideBar = true,
     required TimeLabelLocation timeLabelLocation,
-    String? timeLabelSeparator = ' / ',
+    required String timeLabelSeparator,
     required TimeLabelType timeLabelType,
     TextStyle? timeLabelTextStyle,
     double timeLabelPadding = 0.0,
@@ -457,6 +481,9 @@ class _RenderProgressBar extends RenderBox {
         _progressBarColor = progressBarColor,
         _bufferedBarColor = bufferedBarColor,
         _barCapShape = barCapShape,
+        _hasBarBackground = hasBarBackground,
+        _barBackgroundColor = barBackgroundColor,
+        _barBackgroundHeight = barBackgroundHeight,
         _thumbRadius = thumbRadius,
         _thumbColor = thumbColor,
         _thumbGlowColor = thumbGlowColor,
@@ -467,12 +494,12 @@ class _RenderProgressBar extends RenderBox {
         _timeLabelSeparator = timeLabelSeparator,
         _timeLabelTextStyle = timeLabelTextStyle,
         _timeLabelPadding = timeLabelPadding {
-    _drag = _EagerHorizontalDragGestureRecognizer()
-      ..onStart = _onDragStart
-      ..onUpdate = _onDragUpdate
-      ..onEnd = _onDragEnd
-      ..onCancel = _finishDrag;
-    _thumbValue = _proportionOfTotal(_progress);
+          _drag = _EagerHorizontalDragGestureRecognizer()
+            ..onStart = _onDragStart
+            ..onUpdate = _onDragUpdate
+            ..onEnd = _onDragEnd
+            ..onCancel = _finishDrag;
+          _thumbValue = _proportionOfTotal(_progress);
   }
 
   // This is the gesture recognizer used to move the thumb.
@@ -606,7 +633,7 @@ class _RenderProgressBar extends RenderBox {
   }
 
   TextPainter _timeLabelSeparatorToken() {
-    return _layoutText(_timeLabelSeparator ?? '');
+    return _layoutText(_timeLabelSeparator);
   }
 
   TextPainter _rightTimeLabel() {
@@ -742,6 +769,30 @@ class _RenderProgressBar extends RenderBox {
     markNeedsPaint();
   }
 
+  bool get hasBarBackground => _hasBarBackground;
+  bool _hasBarBackground;
+  set hasBarBackground(bool value) {
+    if (_hasBarBackground == value) return;
+    _hasBarBackground = value;
+    markNeedsPaint();
+  }
+
+  Color get barBackgroundColor => _barBackgroundColor;
+  Color _barBackgroundColor;
+  set barBackgroundColor(Color value) {
+    if (_barBackgroundColor == value) return;
+    _barBackgroundColor = value;
+    markNeedsPaint();
+  }
+
+  double get barBackgroundHeight => _barBackgroundHeight;
+  double _barBackgroundHeight;
+  set barBackgroundHeight(double value) {
+    if (_barBackgroundHeight == value) return;
+    _barBackgroundHeight = value;
+    markNeedsPaint();
+  }
+
   /// The color of the moveable thumb.
   Color get thumbColor => _thumbColor;
   Color _thumbColor;
@@ -810,9 +861,9 @@ class _RenderProgressBar extends RenderBox {
   }
 
 
-  String? get timeLabelSeparator => _timeLabelSeparator;
-  String? _timeLabelSeparator;
-  set timeLabelSeparator(String? value) {
+  String get timeLabelSeparator => _timeLabelSeparator;
+  String _timeLabelSeparator;
+  set timeLabelSeparator(String value) {
     if (_timeLabelSeparator == value) return;
     _timeLabelSeparator = value;
     _clearLabelCache();
@@ -1053,11 +1104,23 @@ class _RenderProgressBar extends RenderBox {
   void _drawProgressBar(Canvas canvas, Offset offset, Size localSize) {
     canvas.save();
     canvas.translate(offset.dx, offset.dy);
+    if (hasBarBackground!) {
+      _drawBackground(canvas, localSize);
+    }
     _drawBaseBar(canvas, localSize);
     _drawBufferedBar(canvas, localSize);
     _drawCurrentProgressBar(canvas, localSize);
     _drawThumb(canvas, localSize);
     canvas.restore();
+  }
+
+  void _drawBackground(Canvas canvas, Size localSize) {
+    _drawBarBackground(
+      canvas: canvas,
+      availableSize: localSize,
+      widthProportion: 1.0,
+      color: baseBarColor,
+    );
   }
 
   void _drawBaseBar(Canvas canvas, Size localSize) {
@@ -1099,12 +1162,36 @@ class _RenderProgressBar extends RenderBox {
       ..color = color
       ..strokeCap = strokeCap
       ..strokeWidth = _barHeight;
+
     final capRadius = _barHeight / 2;
     final adjustedWidth = availableSize.width - barHeight;
     final dx = widthProportion * adjustedWidth + capRadius;
     final startPoint = Offset(capRadius, availableSize.height / 2);
-    var endPoint = Offset(dx, availableSize.height / 2);
+    final endPoint = Offset(dx, availableSize.height / 2);
     canvas.drawLine(startPoint, endPoint, baseBarPaint);
+  }
+
+  void _drawBarBackground(
+      {required Canvas canvas,
+        required Size availableSize,
+        required double widthProportion,
+        required Color color}) {
+
+    final strokeCap = (_barCapShape == BarCapShape.round)
+        ? StrokeCap.round
+        : StrokeCap.square;
+
+    final backgroundBarPaint = Paint()
+      ..color = _barBackgroundColor
+      ..strokeCap = strokeCap
+      ..strokeWidth = _barBackgroundHeight;
+
+    final capRadius = _barHeight / 2;
+    final adjustedWidth = availableSize.width - barHeight;
+    final dx = widthProportion * adjustedWidth + capRadius;
+    final startPoint = Offset(capRadius, availableSize.height / 2);
+    final endPoint = Offset(dx, availableSize.height / 2);
+    canvas.drawLine(startPoint, endPoint, backgroundBarPaint);
   }
 
   void _drawThumb(Canvas canvas, Size localSize) {

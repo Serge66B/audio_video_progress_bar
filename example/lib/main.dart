@@ -95,13 +95,16 @@ class _FullExampleState extends State<FullExample> {
   var _thumbRadius = 10.0;
   var _labelPadding = 0.0;
   var _barHeight = 5.0;
+  double? _barBackgroudHeight;
   var _barCapShape = BarCapShape.round;
   Color? _baseBarColor;
   Color? _progressBarColor;
   Color? _bufferedBarColor;
   Color? _thumbColor;
   Color? _thumbGlowColor;
+  Color? _backgroundColor;
   var _thumbCanPaintOutsideBar = true;
+  var _hasBackground = false;
 
   @override
   void initState() {
@@ -145,6 +148,7 @@ class _FullExampleState extends State<FullExample> {
                     _barColorButtons(),
                     _barCapShapeButtons(),
                     _barHeightButtons(),
+                    _barBackgoundButtons(),
                     _thumbSizeButtons(),
                     _thumbOutsideBarButtons(),
                   ],
@@ -361,6 +365,29 @@ class _FullExampleState extends State<FullExample> {
     ]);
   }
 
+  Wrap _barBackgoundButtons() {
+    return Wrap(children: [
+      OutlinedButton(
+        child: const Text('has background'),
+        onPressed: () {
+          setState(() => _hasBackground = !_hasBackground);
+        },
+      ),
+      OutlinedButton(
+        child: const Text('thin'),
+        onPressed: () {
+          setState(() => _barBackgroudHeight = 3 * _barHeight);
+        },
+      ),
+      OutlinedButton(
+        child: const Text('thick'),
+        onPressed: () {
+          setState(() => _barBackgroudHeight = _barBackgroudHeight = 10 * _barHeight);
+        },
+      ),
+    ]);
+  }
+
   Wrap _barCapShapeButtons() {
     return Wrap(children: [
       OutlinedButton(
@@ -444,6 +471,9 @@ class _FullExampleState extends State<FullExample> {
           baseBarColor: _baseBarColor,
           progressBarColor: _progressBarColor,
           bufferedBarColor: _bufferedBarColor,
+          hasBarBackground: _hasBackground,
+          barBackgroundColor: _backgroundColor,
+          barBackgroundHeight: _barBackgroudHeight,
           thumbColor: _thumbColor,
           thumbGlowColor: _thumbGlowColor,
           barCapShape: _barCapShape,
